@@ -1,0 +1,113 @@
+version: "3.9"
+
+services:
+  mysql_database:
+    image: mysql:8.0
+    container_name: mysql-container
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: dockerdb
+      MYSQL_USER: yf
+      MYSQL_PASSWORD: "123456"
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -prootpass --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - mysql-volume:/var/lib/mysql
+    networks:
+      - spring-network
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # Web UI
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+      RABBITMQ_DEFAULT_VHOST: auth
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_logs:/var/log/rabbitmq
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - spring-network
+
+  redis:
+    image: redis:7.4
+    container_name: redis-container
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - spring-network
+
+  ms-user:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ms-user-image
+    container_name: ms-user-container
+    depends_on:
+      mysql_database:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      PORT: 8080
+
+      # === DB ===
+      DB_HOST: mysql_database
+      DB_PORT: 3306
+      DB_NAME: dockerdb
+      DB_USER: yf
+      DB_PASSWORD: "123456"
+
+      # === JWT ===
+      JWT_SECRET: "abcdpmdgydgaqqpmcngdfetusjcbgdjtplmzyrsthdpdndbfdhdj"
+      JWT_EXP: 86400
+
+      # === RABBITMQ (Spring) ===
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: admin
+      SPRING_RABBITMQ_PASSWORD: admin
+      SPRING_RABBITMQ_VIRTUAL_HOST: auth
+
+      # === REDIS (Spring) ===
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+    ports:
+      - "8080:8080"
+    networks:
+      - spring-network
+
+networks:
+  spring-network:
+
+volumes:
+  mysql-volume:
+  rabbitmq_data:
+  rabbitmq_logs:
+  redis_data:

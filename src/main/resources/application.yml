@@ -1,0 +1,62 @@
+spring:
+  application:
+    name: ms-user
+
+  main:
+    web-application-type: reactive
+
+  server:
+    port: ${PORT:8080}
+
+  r2dbc:
+    url: r2dbc:mysql://${DB_HOST:localhost}:${DB_PORT:3307}/${DB_NAME:dockerdb}?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+    username: ${DB_USER:yf}
+    password: ${DB_PASSWORD:123456}
+    pool:
+      initial-size: 5
+      max-size: 20
+      validation-query: SELECT 1
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+  flyway:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3307}/${DB_NAME:dockerdb}?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+    #url: jdbc:mysql://localhost:3306/mi_basedatos
+    user: ${DB_USER:yf}
+    password: ${DB_PASSWORD:123456}
+    enabled: true
+    baseline-on-migrate: true
+app:
+  async:
+    app:
+      brokerType: rabbitmq
+      createTopology: true
+      domain:
+        events:
+          exchange: events.topic
+          eventsSuffix: subsEvents
+          notificationSuffix: notification
+      direct:
+        exchange: directMessages
+      connectionProperties:
+        host: ${RABBIT_HOST:localhost}
+        port: ${RABBIT_PORT:5672}
+        username: ${RABBIT_USER:ms-user}
+        password: ${RABBIT_PASS:user123}
+        virtualHost: ${RABBIT_VHOST:micro}
+  jwt:
+    secret: ${JWT_SECRET:ahshyegdhfkfkcmfjfjbdhdjxkdkfjgazzswqplsdfbhhshsfj}
+    expiration-seconds: ${JWT_EXP:86400}
+  domain: user-ms
+
+logging:
+  level:
+    root: INFO
+    org.springframework.r2dbc: DEBUG
+  file:
+    name: /app/logs/app.log
+
