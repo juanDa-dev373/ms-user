@@ -59,4 +59,3 @@ logging:
     org.springframework.r2dbc: DEBUG
   file:
     name: /app/logs/app.log
-
