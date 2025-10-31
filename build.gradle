@@ -16,6 +16,13 @@ java {
     }
 }
 
+tasks.named('jar') {
+    enabled = false
+}
+bootJar {
+    archiveFileName = 'app.jar'
+}
+
 configurations {
     compileOnly {
         extendsFrom annotationProcessor
